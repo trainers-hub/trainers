@@ -697,11 +697,12 @@ async function renderAdmin(){
   const topSubject=Object.entries(subjectStats).sort((a,b)=>(b[1].ranks[1]||0)-(a[1].ranks[1]||0))[0];
   const allSubjects=[...new Set(all.flatMap(e=>e.subjects))].sort();
 
-  // أول من اختار كل مقرر في المرتبة الأولى
-  const firstChoiceMap = {};
+  // أول من سجّل كل مقرر (بغض النظر عن الترتيب) — من سجّل أولاً يأخذه
+  const firstRegisteredMap = {};
   all.slice().sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).forEach(e=>{
-    const top = e.subjects[0];
-    if(top && !firstChoiceMap[top]) firstChoiceMap[top] = e;
+    e.subjects.forEach((s,rank)=>{
+      if(!firstRegisteredMap[s]) firstRegisteredMap[s] = { ...e, rank: rank+1 };
+    });
   });
 
   document.getElementById('admin-content').innerHTML=`
@@ -711,14 +712,15 @@ async function renderAdmin(){
       <div class="stat-card"><div class="stat-label">المقرر الأول الأكثر اختياراً</div><div class="stat-value" style="font-size:0.9rem;margin-top:6px;line-height:1.5;">${topSubject?topSubject[0]:'—'}</div><div class="stat-sub">${topSubject?(topSubject[1].ranks[1]||0)+' مدرب اختاره أولاً':'لا بيانات'}</div></div>
       <div class="stat-card"><div class="stat-label">التخصصات المشمولة</div><div class="stat-value">${Object.values(fields).filter(v=>v>0).length}</div><div class="stat-sub">من أصل ${FIELDS.length} تخصصات</div></div>
     </div>
-    <div class="section-title">أول من اختار كل مقرر في المرتبة الأولى</div>
+    <div class="section-title">أول من سجّل كل مقرر — المدرب المخصَّص له</div>
     <div class="pop-grid">
-      ${Object.entries(firstChoiceMap).sort((a,b)=>new Date(a[1].timestamp)-new Date(b[1].timestamp)).map(([subj, e])=>`
+      ${Object.entries(firstRegisteredMap).sort((a,b)=>a[0].localeCompare(b[0], 'ar')).map(([subj, e])=>`
         <div class="pop-card" style="display:flex;flex-direction:column;gap:6px;">
-          <div class="pop-subject" style="margin-bottom:4px;">★ ${subj}</div>
-          <div style="font-size:0.88rem;font-weight:700;color:var(--text)">${e.name}</div>
-          <div style="font-size:0.78rem;color:var(--accent2);font-family:monospace;">${e.id}</div>
-          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">🕐 ${new Date(e.timestamp).toLocaleDateString('ar-SA',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+          <div class="pop-subject" style="margin-bottom:4px;">📘 ${subj}</div>
+          <div style="font-size:0.88rem;font-weight:700;color:var(--text)">👤 ${e.name}</div>
+          <div style="font-size:0.78rem;color:var(--accent2);font-family:monospace;">🔢 ${e.id}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">اختاره بالترتيب: <strong style="color:var(--warning)">#${e.rank}</strong></div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">🕐 ${new Date(e.timestamp).toLocaleDateString('ar-SA',{day:'2-digit',month:'short',year:'numeric'})}</div>
         </div>`).join('')}
     </div>
 
