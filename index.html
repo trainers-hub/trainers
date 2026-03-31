@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>اختيار الرغبات للمدربين</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00c9a7;
+    --accent2: #0ea5e9;
+    --accent-glow: rgba(0,201,167,0.15);
+    --text: #e8f0fe;
+    --text-muted: #6b7fa3;
+    --danger: #f43f5e;
+    --warning: #f59e0b;
+    --success: #10b981;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Tajawal', sans-serif; direction: rtl; }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,201,167,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,201,167,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed; top: -200px; left: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,201,167,0.08) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  #app { position: relative; z-index: 1; min-height: 100vh; }
+  .page { display: none; min-height: 100vh; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* ── SETUP BANNER ── */
+  .setup-banner {
+    background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05));
+    border: 1px solid rgba(245,158,11,0.4);
+    border-radius: var(--radius-sm); padding: 16px 20px; margin: 20px 40px;
+    font-size: 0.88rem; color: var(--warning); line-height: 1.7;
+    display: none;
+  }
+  .setup-banner.show { display: block; }
+  .setup-banner strong { font-weight: 800; }
+
+  header {
+    padding: 20px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,14,26,0.8); backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Tajawal', sans-serif; font-weight: 900; font-size: 1.2rem; color: var(--text); }
+  .logo span { color: var(--accent); }
+  .admin-link {
+    font-size: 0.85rem; color: var(--text-muted); cursor: pointer;
+    padding: 6px 16px; border: 1px solid var(--border); border-radius: 20px;
+    transition: all 0.2s; text-decoration: none; display: inline-block;
+  }
+  .admin-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  .steps { display: flex; align-items: center; justify-content: center; padding: 32px 20px 0; flex-direction: row-reverse; }
+  .step-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .step-circle {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-family: 'Tajawal', sans-serif; font-weight: 800; font-size: 0.9rem;
+    color: var(--text-muted); transition: all 0.4s;
+  }
+  .step-circle.done { background: var(--accent); border-color: var(--accent); color: #000; }
+  .step-circle.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+  .step-label { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+  .step-item.active .step-label { color: var(--accent); }
+  .step-line { width: 60px; height: 2px; background: var(--border); margin-bottom: 20px; transition: background 0.4s; }
+  .step-line.done { background: var(--accent); }
+
+  .content { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px 20px 60px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 40px; width: 100%; max-width: 560px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    animation: slideUp 0.4s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .card-title { font-family: 'Tajawal', sans-serif; font-weight: 900; font-size: 1.9rem; line-height: 1.3; margin-bottom: 8px; }
+  .card-sub { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 32px; line-height: 1.7; }
+
+  .form-group { margin-bottom: 20px; }
+  label { display: block; font-size: 0.88rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; }
+  input[type=text] {
+    width: 100%; padding: 14px 16px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--surface2);
+    color: var(--text); font-family: 'Tajawal', sans-serif; font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none; direction: rtl;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  input.error { border-color: var(--danger); }
+  .error-msg { color: var(--danger); font-size: 0.82rem; margin-top: 6px; }
+
+  .btn {
+    padding: 14px 28px; border-radius: var(--radius-sm); font-family: 'Tajawal', sans-serif;
+    font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;
+    border: none; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #00dbb8; box-shadow: 0 4px 20px rgba(0,201,167,0.3); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-full { width: 100%; justify-content: center; margin-top: 8px; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-danger:hover { background: #e11d48; }
+  .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
+
+  /* Spinner */
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #000; border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+  .spinner-light { border-color: rgba(255,255,255,0.2); border-top-color: white; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+  .field-card {
+    padding: 18px 16px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 8px;
+    background: var(--surface2); position: relative; overflow: hidden;
+  }
+  .field-card::before {
+    content: ''; position: absolute; top: 0; right: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transform: scaleX(0); transform-origin: right; transition: transform 0.3s;
+  }
+  .field-card:hover { border-color: rgba(0,201,167,0.4); transform: translateY(-2px); }
+  .field-card.selected { border-color: var(--accent); background: rgba(0,201,167,0.07); }
+  .field-card.selected::before { transform: scaleX(1); }
+  .field-icon { font-size: 1.6rem; }
+  .field-name { font-family: 'Tajawal', sans-serif; font-weight: 800; font-size: 0.95rem; }
+  .field-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+  .field-check {
+    position: absolute; top: 10px; left: 10px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); display: none;
+    align-items: center; justify-content: center; font-size: 0.75rem; color: #000; font-weight: 900;
+  }
+  .field-card.selected .field-check { display: flex; }
+
+  .dnd-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+  .dnd-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 18px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--surface2);
+    cursor: grab; user-select: none; transition: all 0.15s;
+  }
+  .dnd-item:active { cursor: grabbing; }
+  .dnd-item.dragging { opacity: 0.4; border-style: dashed; }
+  .dnd-item.drag-over { border-color: var(--accent); background: rgba(0,201,167,0.07); transform: scale(1.01); }
+  .rank-badge {
+    width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-family: 'Tajawal', sans-serif; font-weight: 900; font-size: 0.85rem; flex-shrink: 0;
+  }
+  .rank-1 { background: rgba(245,158,11,0.2); color: var(--warning); }
+  .rank-2 { background: rgba(14,165,233,0.2); color: var(--accent2); }
+  .rank-3 { background: rgba(16,185,129,0.15); color: var(--success); }
+  .rank-n { background: rgba(107,127,163,0.15); color: var(--text-muted); }
+  .dnd-name { flex: 1; font-weight: 600; font-size: 0.95rem; }
+  .drag-handle { color: var(--text-muted); font-size: 1.1rem; cursor: grab; order: 1; }
+  .dnd-hint { font-size: 0.82rem; color: var(--text-muted); text-align: center; padding: 0 0 16px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  .summary-list { text-align: right; margin: 24px 0; display: flex; flex-direction: column; gap: 8px; }
+  .summary-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; font-size: 0.9rem; }
+  .summary-num { font-family: 'Tajawal', sans-serif; font-weight: 900; color: var(--accent); min-width: 30px; }
+  .success-name { color: var(--accent); }
+  .success-icon { font-size: 4rem; text-align: center; display: block; margin-bottom: 16px; animation: pop 0.5s ease; }
+  @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+  .admin-header {
+    padding: 20px 40px; border-bottom: 1px solid var(--border);
+    background: rgba(10,14,26,0.9); backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  .admin-title { font-family: 'Tajawal', sans-serif; font-weight: 900; font-size: 1.4rem; }
+  .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+  .badge-accent { background: rgba(0,201,167,0.15); color: var(--accent); border: 1px solid rgba(0,201,167,0.3); }
+
+  .admin-content { padding: 32px 40px; max-width: 1200px; margin: 0 auto; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 36px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .stat-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 700; }
+  .stat-value { font-family: 'Tajawal', sans-serif; font-weight: 900; font-size: 2rem; color: var(--accent); }
+  .stat-sub { font-size: 0.82rem; color: var(--text-muted); }
+
+  .section-title {
+    font-family: 'Tajawal', sans-serif; font-weight: 800; font-size: 1.15rem;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::before { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; direction: rtl; }
+  .filter-btn {
+    padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text-muted); font-size: 0.82rem;
+    font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Tajawal', sans-serif;
+  }
+  .filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,201,167,0.07); }
+  .filter-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 700; white-space: nowrap; }
+
+  .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 36px; }
+  table { width: 100%; border-collapse: collapse; direction: rtl; }
+  thead tr { background: var(--surface2); }
+  th { padding: 12px 16px; text-align: right; font-size: 0.82rem; color: var(--text-muted); font-weight: 700; white-space: nowrap; font-family: 'Tajawal', sans-serif; }
+  td { padding: 14px 16px; font-size: 0.9rem; border-top: 1px solid var(--border); text-align: right; }
+  tr:hover td { background: rgba(0,201,167,0.03); }
+  .subjects-chain { display: flex; flex-wrap: wrap; gap: 4px; direction: rtl; }
+  .sub-chip { padding: 3px 8px; border-radius: 5px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; font-family: 'Tajawal', sans-serif; }
+  .sub-chip-1 { background: rgba(245,158,11,0.15); color: var(--warning); }
+  .sub-chip-2 { background: rgba(14,165,233,0.15); color: var(--accent2); }
+  .sub-chip-n { background: rgba(107,127,163,0.1); color: var(--text-muted); }
+
+  .pop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 36px; }
+  .pop-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px; }
+  .pop-subject { font-weight: 800; font-size: 0.92rem; margin-bottom: 12px; }
+  .pop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.8rem; }
+  .pop-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .pop-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+  .pop-bar-1 { background: var(--warning); }
+  .pop-bar-2 { background: var(--accent2); }
+  .pop-bar-n { background: var(--text-muted); }
+  .pop-count { min-width: 20px; text-align: left; color: var(--text-muted); }
+  .pop-rank-label { min-width: 60px; color: var(--text-muted); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: fixed; inset: 0; background: rgba(10,14,26,0.85); z-index: 9998;
+    display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    backdrop-filter: blur(4px);
+  }
+  .loading-overlay.show { display: flex; }
+  .loading-ring {
+    width: 48px; height: 48px; border: 3px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-text { font-size: 0.9rem; color: var(--text-muted); }
+
+  .auth-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999;
+    display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  }
+  .auth-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 40px; width: 100%; max-width: 360px; animation: slideUp 0.3s ease; direction: rtl;
+  }
+  .auth-title { font-family: 'Tajawal', sans-serif; font-weight: 900; font-size: 1.6rem; margin-bottom: 8px; }
+  .auth-sub { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 28px; line-height: 1.6; }
+
+  @media (max-width: 600px) {
+    header, .admin-header { padding: 16px 20px; }
+    .card { padding: 28px 20px; }
+    .fields-grid { grid-template-columns: 1fr; }
+    .admin-content { padding: 20px; }
+    .step-line { width: 30px; }
+    .setup-banner { margin: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-ring"></div>
+    <div class="loading-text" id="loading-text">جارٍ الحفظ...</div>
+  </div>
+
+  <!-- صفحات المدرب -->
+  <div id="page-form" class="page active">
+    <header>
+      <div class="logo">اختيار <span>الرغبات للمدربين</span></div>
+      <a class="admin-link" onclick="showAdminAuth()">← لوحة الإدارة</a>
+    </header>
+
+    <!-- تحذير إعداد Firebase -->
+    <div class="setup-banner" id="setup-banner">
+      ⚠️ <strong>خطوة مطلوبة:</strong> لم يتم إعداد قاعدة البيانات بعد. يرجى اتباع التعليمات المرفقة مع الملف واستبدال <code>YOUR_FIREBASE_URL</code> برابط مشروعك على Firebase.
+    </div>
+
+    <div class="steps" id="steps-bar">
+      <div class="step-item active" id="step-1">
+        <div class="step-circle active" id="sc-1">١</div>
+        <div class="step-label">البيانات</div>
+      </div>
+      <div class="step-line" id="sl-1"></div>
+      <div class="step-item" id="step-2">
+        <div class="step-circle" id="sc-2">٢</div>
+        <div class="step-label">التخصص</div>
+      </div>
+      <div class="step-line" id="sl-2"></div>
+      <div class="step-item" id="step-3">
+        <div class="step-circle" id="sc-3">٣</div>
+        <div class="step-label">الأولويات</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <div id="p1" class="card">
+        <div class="card-title">أهلاً بك،<br/>لنبدأ 👋</div>
+        <div class="card-sub">أدخل بياناتك للبدء في تحديد أولويات المقررات.</div>
+        <div class="form-group">
+          <label>الاسم الكامل</label>
+          <input type="text" id="inp-name" placeholder="مثال: أحمد العمري" />
+          <div class="error-msg" id="err-name"></div>
+        </div>
+        <div class="form-group">
+          <label>الرقم الوظيفي</label>
+          <input type="text" id="inp-id" placeholder="مثال: 12345" />
+          <div class="error-msg" id="err-id"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="goToPage2()">متابعة ←</button>
+      </div>
+
+      <div id="p2" class="card" style="display:none; max-width:640px;">
+        <div class="card-title">اختر تخصصك</div>
+        <div class="card-sub">اختر التخصص الذي يمثل مجال تدريبك.</div>
+        <div class="fields-grid" id="fields-grid"></div>
+        <div class="error-msg" id="err-field" style="margin-bottom:12px;"></div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="backToPage1()" style="flex:1; justify-content:center;">→ رجوع</button>
+          <button class="btn btn-primary" onclick="goToPage3()" style="flex:2; justify-content:center;">متابعة ←</button>
+        </div>
+      </div>
+
+      <div id="p3" class="card" style="display:none; max-width:560px;">
+        <div class="card-title">رتّب المقررات</div>
+        <div class="card-sub">اسحب وأفلت لترتيب المقررات حسب أولويتك. الأول هو اختيارك الأهم.</div>
+        <div class="dnd-hint">✦ اسحب العناصر لإعادة الترتيب</div>
+        <div class="dnd-list" id="dnd-list"></div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="backToPage2()" style="flex:1; justify-content:center;">→ رجوع</button>
+          <button class="btn btn-primary" id="submit-btn" onclick="submitForm()" style="flex:2; justify-content:center;">
+            <div class="spinner" id="submit-spinner"></div>
+            <span id="submit-label">إرسال ✓</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="p-success" class="card" style="display:none; text-align:center;">
+        <span class="success-icon">🎉</span>
+        <div class="card-title">تم بنجاح، <span class="success-name" id="success-name"></span>!</div>
+        <div class="card-sub">تم تسجيل أولويات المقررات الخاصة بك بنجاح.</div>
+        <div class="summary-list" id="summary-list"></div>
+        <button class="btn btn-secondary btn-full" onclick="resetForm()">تسجيل استجابة أخرى</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- لوحة الإدارة -->
+  <div id="page-admin" class="page">
+    <div class="admin-header">
+      <div>
+        <div class="admin-title">لوحة الإدارة</div>
+        <div style="color:var(--text-muted);font-size:0.82rem;margin-top:2px;">أولويات مقررات المدربين</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span class="badge badge-accent" id="admin-total-badge">٠ استجابة</span>
+        <button class="btn btn-sm btn-secondary" onclick="refreshAdmin()">↻ تحديث</button>
+        <button class="btn btn-sm btn-danger" onclick="clearAllData()">حذف الكل</button>
+        <button class="btn btn-sm btn-secondary" onclick="backToForm()">→ نموذج المدرب</button>
+      </div>
+    </div>
+    <div class="admin-content" id="admin-content"></div>
+  </div>
+
+  <!-- نافذة كلمة المرور -->
+  <div id="auth-overlay" class="auth-overlay" style="display:none;">
+    <div class="auth-box">
+      <div class="auth-title">دخول الإدارة</div>
+      <div class="auth-sub">أدخل كلمة المرور للوصول إلى لوحة الإدارة.</div>
+      <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="text" id="auth-pass" placeholder="أدخل كلمة المرور" onkeydown="if(event.key==='Enter') checkAuth()" />
+        <div class="error-msg" id="auth-err"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button class="btn btn-secondary" onclick="closeAuth()" style="flex:1;justify-content:center;">إلغاء</button>
+        <button class="btn btn-primary" onclick="checkAuth()" style="flex:1;justify-content:center;">دخول</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  🔥 FIREBASE — استبدل هذا الرابط برابط مشروعك
+//  مثال: https://my-project-abc12-default-rtdb.firebaseio.com
+// ══════════════════════════════════════════════════════════
+const FIREBASE_URL = "https://trainer-hub-9fe5c-default-rtdb.asia-southeast1.firebasedatabase.app";
+const ADMIN_PASSWORD = "admin123";
+
+// تحقق هل تم إعداد Firebase
+const firebaseReady = FIREBASE_URL !== "YOUR_FIREBASE_URL" && FIREBASE_URL.startsWith("https://");
+if (!firebaseReady) document.getElementById('setup-banner').classList.add('show');
+
+// ══════════════════════════════════════════════
+//  Firebase API
+// ══════════════════════════════════════════════
+async function fbGet() {
+  if (!firebaseReady) return {};
+  const r = await fetch(`${FIREBASE_URL}/submissions.json`);
+  const d = await r.json();
+  return d || {};
+}
+
+async function fbSave(entry) {
+  if (!firebaseReady) throw new Error("Firebase not configured");
+  // استخدام الرقم الوظيفي كمفتاح (يمنع التكرار)
+  const key = entry.id.replace(/[.#$/[\]]/g, '_');
+  await fetch(`${FIREBASE_URL}/submissions/${key}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry)
+  });
+}
+
+async function fbDelete() {
+  if (!firebaseReady) return;
+  await fetch(`${FIREBASE_URL}/submissions.json`, { method: 'DELETE' });
+}
+
+// ══════════════════════════════════════════════
+//  البيانات
+// ══════════════════════════════════════════════
+const FIELDS = [
+  { id:"logistics", icon:"🚚", name:"تقنية الخدمات اللوجستية",  desc:"اللوجستيات وسلاسل الإمداد والتوريد" },
+  { id:"ecommerce", icon:"🛒", name:"تقنية التجارة الالكترونية", desc:"التجارة الإلكترونية والتسويق الرقمي" },
+  { id:"insurance", icon:"🛡️", name:"تقنيات التأمين والمخاطر",   desc:"التأمين وإدارة المخاطر المالية" },
+  { id:"hr",        icon:"👥", name:"تقنية الموارد البشرية",      desc:"إدارة الموارد البشرية والتطوير الوظيفي" },
+];
+
+const SUBJECTS_BY_FIELD = {
+  logistics:[
+    "مبادئ إدارة الأعمال","مقدمة في اللوجستيات","مبادئ القانون التجاري","الأمن والسلامة",
+    "أساسيات ريادة الأعمال","مبادئ التسويق","مقدمة في الإحصاء","مبادئ المحاسبة",
+    "إدارة اللوجستيات","إدارة سلاسل الإمداد والتوريد","ريادة الأعمال في مجال الإدارة",
+    "السياسات الحكومية","الأخلاقيات والمسؤولية الاجتماعية للمنظمات","إدارة التعبئة والتغليف",
+    "إدارة عمليات الإنتاج","إدارة المشتريات والمواد","مبادئ الإدارة المالية",
+    "السلوك الوظيفي والمستقبل المهني","استراتيجية الأعمال اللوجستية والتخطيط",
+    "تطبيقات في اللوجستيات وسلاسل الإمداد","إدارة الجودة في اللوجستيات",
+    "إدارة الصراعات والمفاوضات والأزمات","إدارة قنوات التوزيع والنقل"
+  ],
+  ecommerce:[
+    "مبادئ التسويق","مبادئ إدارة الأعمال","مفاهيم التجارة الإلكترونية","أساسيات ريادة الأعمال",
+    "مبادئ محاسبة","التسويق الإلكتروني","مبادئ برمجة صفحات الانترنت","التصميم المرئي (1)",
+    "ريادة الأعمال في مجال التجارة والتسويق","برمجة الانترنت","إدارة المشاريع",
+    "استراتيجيات الأعمال الإلكترونية","أخلاقيات وقانون التجارة الإلكترونية","تحليل وتصميم النظم",
+    "السلوك الوظيفي والمستقبل المنهي","تصميم الجرافيك","إدارة سلسلة التوريد",
+    "ريادة أعمال التجارة الإلكترونية","التجارة الإلكترونية في الأجهزة الذكية",
+    "موضوعات مختارة في التجارة الإلكترونية"
+  ],
+  insurance:[
+    "مبادئ إدارة الأعمال","مقدمة في الإحصاء","أساسيات إدارة الخطر والتأمين",
+    "أساسيات ريادة الأعمال","مبادئ المحاسبة","تطبيقات الحاسب المتقدمة","الرياضيات المالية",
+    "تأمينات الحماية والادخار","ريادة الأعمال في المجال المالي","تأمينات الممتلكات",
+    "رياضيات التأمين","تأمينات المسئولية المدنية","تأمين السيارات",
+    "السلوك الوظيفي والمستقبل المهني","التأمينات الاجتماعية","التأمين الصحي",
+    "إعادة التأمين","العمليات الفنية في التأمين","موضوعات مختارة في التأمين"
+  ],
+  hr:[
+    "مقدمة في الإحصاء","مبادئ إدارة الأعمال","مبادئ إدارة الموارد البشرية",
+    "أساسيات ريادة الأعمال","مبادئ المحاسبة","تطبيقات الحاسب المتقدمة",
+    "تحليل وتقييم الوظائف","تخطيط الموارد البشرية","ريادة الأعمال في مجال الإدارة",
+    "إدارة نظم الأجور والتعويضات","إدارة الأداء","تدريب وتنمية الموارد البشرية",
+    "الإستقطاب والإختيار","السلوك الوظيفي والمستقبل المهني",
+    "مصطلحات انجليزية في إدارة الموارد البشرية","إدارة الخدمة المدنية",
+    "تطبيقات الحاسب الآلي في ادارة الموارد البشرية","موضوعات مختارة في ادارة الموارد البشرية"
+  ],
+};
+
+let trainer = {name:"",id:"",field:"",subjects:[]};
+let dragSrc  = null;
+
+// ══════════════════════════════════════════════
+//  Loading helpers
+// ══════════════════════════════════════════════
+function showLoading(msg="جارٍ الحفظ..."){
+  document.getElementById('loading-text').textContent=msg;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading(){ document.getElementById('loading-overlay').classList.remove('show'); }
+
+// ══════════════════════════════════════════════
+//  التنقل
+// ══════════════════════════════════════════════
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById(`sc-${i}`).className='step-circle'+(i<n?' done':i===n?' active':'');
+    document.getElementById(`step-${i}`).className='step-item'+(i===n?' active':'');
+    if(i<3) document.getElementById(`sl-${i}`).className='step-line'+(i<n?' done':'');
+  });
+}
+function showCard(id){['p1','p2','p3','p-success'].forEach(p=>document.getElementById(p).style.display=p===id?'block':'none')}
+
+function goToPage2(){
+  const name=document.getElementById('inp-name').value.trim();
+  const id=document.getElementById('inp-id').value.trim();
+  let ok=true;
+  if(!name){document.getElementById('err-name').textContent='الاسم مطلوب.';document.getElementById('inp-name').classList.add('error');ok=false;}
+  else{document.getElementById('err-name').textContent='';document.getElementById('inp-name').classList.remove('error');}
+  if(!id){document.getElementById('err-id').textContent='الرقم الوظيفي مطلوب.';document.getElementById('inp-id').classList.add('error');ok=false;}
+  else{document.getElementById('err-id').textContent='';document.getElementById('inp-id').classList.remove('error');}
+  if(!ok) return;
+  trainer.name=name;trainer.id=id;trainer.field='';trainer.subjects=[];
+  renderFields();setStep(2);showCard('p2');
+}
+function backToPage1(){setStep(1);showCard('p1')}
+function goToPage3(){
+  if(!trainer.field){document.getElementById('err-field').textContent='يرجى اختيار التخصص.';return;}
+  document.getElementById('err-field').textContent='';
+  trainer.subjects=[...SUBJECTS_BY_FIELD[trainer.field]];
+  renderDnD();setStep(3);showCard('p3');
+}
+function backToPage2(){setStep(2);showCard('p2')}
+
+async function submitForm(){
+  const btn=document.getElementById('submit-btn');
+  const spinner=document.getElementById('submit-spinner');
+  const label=document.getElementById('submit-label');
+  btn.disabled=true; spinner.style.display='block'; label.textContent='جارٍ الإرسال...';
+
+  const entry={
+    name:trainer.name, id:trainer.id,
+    field:trainer.field,
+    fieldName:FIELDS.find(f=>f.id===trainer.field)?.name||trainer.field,
+    subjects:[...trainer.subjects],
+    timestamp:new Date().toISOString()
+  };
+  try {
+    const key = entry.id.replace(/[.#$/[\]]/g, '_');
+    const res = await fetch(`${FIREBASE_URL}/submissions/${key}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry)
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    document.getElementById('success-name').textContent=trainer.name.split(' ')[0];
+    document.getElementById('summary-list').innerHTML=entry.subjects.map((s,i)=>`
+      <div class="summary-row"><span class="summary-num">${i+1}</span><span>${s}</span></div>`).join('');
+    showCard('p-success');
+    document.getElementById('steps-bar').style.display='none';
+  } catch(e){
+    alert('حدث خطأ: ' + e.message + '\n\nيرجى التحقق من إعدادات Firebase (قواعد الأمان) والمحاولة مجدداً.');
+  } finally {
+    btn.disabled=false; spinner.style.display='none'; label.textContent='إرسال ✓';
+  }
+}
+
+function resetForm(){
+  trainer={name:"",id:"",field:"",subjects:[]};
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-id').value='';
+  document.getElementById('steps-bar').style.display='flex';
+  setStep(1);showCard('p1');
+}
+
+// ══════════════════════════════════════════════
+//  عرض التخصصات
+// ══════════════════════════════════════════════
+function renderFields(){
+  document.getElementById('fields-grid').innerHTML=FIELDS.map(f=>`
+    <div class="field-card ${trainer.field===f.id?'selected':''}" onclick="selectField('${f.id}')">
+      <div class="field-check">✓</div>
+      <div class="field-name">${f.name}</div>
+      <div class="field-desc">${f.desc}</div>
+    </div>`).join('');
+}
+function selectField(id){trainer.field=id;document.getElementById('err-field').textContent='';renderFields()}
+
+// ══════════════════════════════════════════════
+//  السحب والإفلات
+// ══════════════════════════════════════════════
+function renderDnD(){
+  document.getElementById('dnd-list').innerHTML=trainer.subjects.map((s,i)=>{
+    const rc=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-n';
+    return `<div class="dnd-item" draggable="true" data-idx="${i}"
+      ondragstart="dndStart(event)" ondragover="dndOver(event)"
+      ondragleave="dndLeave(event)" ondrop="dndDrop(event)" ondragend="dndEnd(event)">
+      <div class="dnd-name">${s}</div>
+      <div class="rank-badge ${rc}">${i+1}</div>
+      <div class="drag-handle">⠿</div>
+    </div>`;
+  }).join('');
+}
+function dndStart(e){dragSrc=e.currentTarget;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move'}
+function dndOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over')}
+function dndLeave(e){e.currentTarget.classList.remove('drag-over')}
+function dndEnd(e){e.currentTarget.classList.remove('dragging')}
+function dndDrop(e){
+  e.preventDefault();e.currentTarget.classList.remove('drag-over');
+  const from=parseInt(dragSrc.dataset.idx),to=parseInt(e.currentTarget.dataset.idx);
+  if(from===to) return;
+  const a=[...trainer.subjects];const[m]=a.splice(from,1);a.splice(to,0,m);
+  trainer.subjects=a;renderDnD();
+}
+let touchDragIdx=null,touchClone=null;
+document.addEventListener('touchstart',e=>{
+  const item=e.target.closest('.dnd-item');if(!item)return;
+  touchDragIdx=parseInt(item.dataset.idx);
+  touchClone=item.cloneNode(true);
+  touchClone.style.cssText='position:fixed;opacity:0.85;pointer-events:none;z-index:9999;width:'+item.offsetWidth+'px;';
+  document.body.appendChild(touchClone);
+},{passive:true});
+document.addEventListener('touchmove',e=>{
+  if(touchDragIdx===null||!touchClone)return;
+  const t=e.touches[0];
+  touchClone.style.left=(t.clientX-touchClone.offsetWidth/2)+'px';
+  touchClone.style.top=(t.clientY-30)+'px';
+},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(touchDragIdx===null)return;
+  const t=e.changedTouches[0];
+  if(touchClone){touchClone.remove();touchClone=null;}
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const target=el&&el.closest('.dnd-item');
+  if(target){const to=parseInt(target.dataset.idx);if(to!==touchDragIdx){const a=[...trainer.subjects];const[m]=a.splice(touchDragIdx,1);a.splice(to,0,m);trainer.subjects=a;renderDnD();}}
+  touchDragIdx=null;
+},{passive:true});
+
+// ══════════════════════════════════════════════
+//  الإدارة
+// ══════════════════════════════════════════════
+let adminFilter='all';
+let adminSearch='';
+
+function showAdminAuth(){document.getElementById('auth-pass').value='';document.getElementById('auth-err').textContent='';document.getElementById('auth-overlay').style.display='flex';setTimeout(()=>document.getElementById('auth-pass').focus(),100)}
+function closeAuth(){document.getElementById('auth-overlay').style.display='none'}
+function checkAuth(){
+  if(document.getElementById('auth-pass').value.trim()===ADMIN_PASSWORD){closeAuth();openAdmin();}
+  else document.getElementById('auth-err').textContent='كلمة المرور غير صحيحة.';
+}
+function openAdmin(){adminFilter='all';adminSearch='';document.getElementById('page-form').classList.remove('active');document.getElementById('page-admin').classList.add('active');renderAdmin()}
+function backToForm(){document.getElementById('page-admin').classList.remove('active');document.getElementById('page-form').classList.add('active')}
+function refreshAdmin(){renderAdmin()}
+
+async function clearAllData(){
+  if(confirm('هل أنت متأكد من حذف جميع الاستجابات؟ لا يمكن التراجع عن هذا الإجراء.')){
+    showLoading('جارٍ الحذف...');
+    try{ await fbDelete(); }catch(e){}
+    hideLoading();
+    renderAdmin();
+  }
+}
+
+async function renderAdmin(){
+  showLoading('جارٍ التحميل...');
+  let raw={};
+  try{ raw=await fbGet(); }catch(e){}
+  hideLoading();
+
+  const all=Object.values(raw);
+  document.getElementById('admin-total-badge').textContent=all.length+' استجابة';
+
+  if(all.length===0){
+    document.getElementById('admin-content').innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div style="font-family:'Tajawal';font-weight:800;font-size:1.2rem;margin-bottom:8px;">لا توجد استجابات بعد</div><div>لم يقم أي مدرب بتسجيل أولوياته حتى الآن.</div></div>`;return;
+  }
+
+  const fields={};FIELDS.forEach(f=>fields[f.id]=0);all.forEach(e=>{if(fields[e.field]!==undefined)fields[e.field]++});
+  const topField=FIELDS.find(f=>f.id===Object.keys(fields).sort((a,b)=>fields[b]-fields[a])[0]);
+  const subjectStats={};
+  all.forEach(e=>{e.subjects.forEach((s,i)=>{if(!subjectStats[s])subjectStats[s]={ranks:{}};subjectStats[s].ranks[i+1]=(subjectStats[s].ranks[i+1]||0)+1;subjectStats[s].total=(subjectStats[s].total||0)+1;})});
+  const topSubject=Object.entries(subjectStats).sort((a,b)=>(b[1].ranks[1]||0)-(a[1].ranks[1]||0))[0];
+  const allSubjects=[...new Set(all.flatMap(e=>e.subjects))].sort();
+
+  // أول من اختار كل مقرر في المرتبة الأولى
+  const firstChoiceMap = {};
+  all.slice().sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).forEach(e=>{
+    const top = e.subjects[0];
+    if(top && !firstChoiceMap[top]) firstChoiceMap[top] = e;
+  });
+
+  document.getElementById('admin-content').innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">إجمالي المدربين</div><div class="stat-value">${all.length}</div><div class="stat-sub">استجابة مسجّلة</div></div>
+      <div class="stat-card"><div class="stat-label">التخصص الأكثر اختياراً</div><div class="stat-value" style="font-size:1.1rem;margin-top:4px;">${topField?.icon||'—'} ${topField?.name||'—'}</div><div class="stat-sub">${fields[topField?.id]||0} مدرب</div></div>
+      <div class="stat-card"><div class="stat-label">المقرر الأول الأكثر اختياراً</div><div class="stat-value" style="font-size:0.9rem;margin-top:6px;line-height:1.5;">${topSubject?topSubject[0]:'—'}</div><div class="stat-sub">${topSubject?(topSubject[1].ranks[1]||0)+' مدرب اختاره أولاً':'لا بيانات'}</div></div>
+      <div class="stat-card"><div class="stat-label">التخصصات المشمولة</div><div class="stat-value">${Object.values(fields).filter(v=>v>0).length}</div><div class="stat-sub">من أصل ${FIELDS.length} تخصصات</div></div>
+    </div>
+    <div class="section-title">أول من اختار كل مقرر في المرتبة الأولى</div>
+    <div class="pop-grid">
+      ${Object.entries(firstChoiceMap).sort((a,b)=>new Date(a[1].timestamp)-new Date(b[1].timestamp)).map(([subj, e])=>`
+        <div class="pop-card" style="display:flex;flex-direction:column;gap:6px;">
+          <div class="pop-subject" style="margin-bottom:4px;">★ ${subj}</div>
+          <div style="font-size:0.88rem;font-weight:700;color:var(--text)">${e.name}</div>
+          <div style="font-size:0.78rem;color:var(--accent2);font-family:monospace;">${e.id}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">🕐 ${new Date(e.timestamp).toLocaleDateString('ar-SA',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-title">شعبية المقررات حسب الترتيب</div>
+    <div class="pop-grid">
+      ${Object.entries(subjectStats).sort((a,b)=>(b[1].ranks[1]||0)-(a[1].ranks[1]||0)).slice(0,12).map(([subj,st])=>{
+        const max=Math.max(...Object.values(st.ranks));
+        return`<div class="pop-card"><div class="pop-subject">${subj}</div>
+          ${[1,2,3].map(r=>st.ranks[r]?`<div class="pop-row"><span class="pop-rank-label">الترتيب ${r}</span><div class="pop-bar-wrap"><div class="pop-bar pop-bar-${r<=2?r:'n'}" style="width:${Math.round((st.ranks[r]/max)*100)}%"></div></div><span class="pop-count">${st.ranks[r]}</span></div>`:'').join('')}
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${st.total} اختيار إجمالي</div></div>`;
+      }).join('')}
+    </div>
+    <div class="section-title">جميع الاستجابات</div>
+    <div style="margin-bottom:16px;">
+      <input type="text" id="admin-search" placeholder="🔍  ابحث باسم المدرب أو الرقم الوظيفي..." oninput="setAdminSearch(this.value)"
+        style="width:100%;padding:12px 16px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Tajawal',sans-serif;font-size:0.95rem;outline:none;direction:rtl;transition:border-color 0.2s,box-shadow 0.2s;"
+        onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-glow)'"
+        onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"
+        value="${adminSearch}" />
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">تصفية حسب الاختيار الأول:</span>
+      <button class="filter-btn ${adminFilter==='all'?'active':''}" onclick="setAdminFilter('all')">الكل</button>
+      ${allSubjects.map(s=>`<button class="filter-btn ${adminFilter===s?'active':''}" onclick="setAdminFilter('${s.replace(/'/g,"\\'")}')">${s}</button>`).join('')}
+    </div>
+    <div id="table-count" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>الاسم</th><th>الرقم الوظيفي</th><th>التخصص</th><th>أولويات المقررات</th><th>تاريخ التسجيل</th></tr></thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+  `;
+
+  // store all for filtering
+  window._adminAll = all;
+  renderTable();
+  // restore focus if search was active
+  if(adminSearch){ const s=document.getElementById('admin-search'); if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);} }
+}
+
+function renderTable(){
+  const all = window._adminAll || [];
+  const filtered=adminFilter==='all'?all:all.filter(e=>e.subjects[0]===adminFilter);
+  const q=adminSearch.trim().toLowerCase();
+  const display=q?filtered.filter(e=>e.name.toLowerCase().includes(q)||String(e.id).toLowerCase().includes(q)):filtered;
+  const sorted=display.slice().sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+
+  const countEl=document.getElementById('table-count');
+  if(countEl) countEl.innerHTML=`عرض ${display.length} من ${all.length} استجابة${adminFilter!=='all'?' — الاختيار الأول: <strong style="color:var(--accent)">'+adminFilter+'</strong>':''}${q?' — بحث: <strong style="color:var(--accent2)">'+adminSearch+'</strong>':''}`;
+
+  const tbody=document.getElementById('admin-tbody');
+  if(!tbody) return;
+  tbody.innerHTML=sorted.length===0
+    ?`<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">لا توجد نتائج</td></tr>`
+    :sorted.map((e,i)=>`
+      <tr>
+        <td style="color:var(--text-muted)">${i+1}</td>
+        <td><strong>${e.name}</strong></td>
+        <td><span style="font-family:monospace;font-size:0.85rem;color:var(--accent2)">${e.id}</span></td>
+        <td>${FIELDS.find(f=>f.id===e.field)?.icon||''} ${e.fieldName}</td>
+        <td><div class="subjects-chain">${e.subjects.map((s,idx)=>`<span class="sub-chip ${idx===0?'sub-chip-1':idx===1?'sub-chip-2':'sub-chip-n'}">${idx===0?'★ ':''}${idx+1}. ${s}</span>`).join('')}</div></td>
+        <td style="color:var(--text-muted);white-space:nowrap;">${new Date(e.timestamp).toLocaleDateString('ar-SA',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      </tr>`).join('');
+}
+
+function setAdminFilter(val){adminFilter=val;renderTable();
+  // update active button style
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+function setAdminSearch(val){adminSearch=val;renderTable()}
+</script>
+</body>
+</html>
