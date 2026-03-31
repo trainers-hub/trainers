@@ -733,6 +733,34 @@ async function renderAdmin(){
           <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${st.total} اختيار إجمالي</div></div>`;
       }).join('')}
     </div>
+    <div class="section-title">المقررات</div>
+    <div style="margin-bottom:16px;font-size:0.85rem;color:var(--text-muted);">اضغط على أي مقرر لعرض جميع المدربين الذين اختاروه مرتبين حسب وقت التسجيل.</div>
+    <div class="filter-bar" style="margin-bottom:8px;">
+      ${allSubjects.map(s=>`<button class="filter-btn" onclick="showSubjectDetail('${s.replace(/'/g,"\\'")}')">${s}</button>`).join('')}
+    </div>
+    <div id="subject-detail" style="margin-bottom:36px;display:none;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <div id="subject-detail-header" style="padding:16px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <div id="subject-detail-title" style="font-family:'Tajawal';font-weight:800;font-size:1.1rem;"></div>
+          <button onclick="document.getElementById('subject-detail').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;">✕</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;direction:rtl;">
+            <thead>
+              <tr style="background:var(--surface2);">
+                <th style="padding:12px 16px;text-align:right;font-size:0.8rem;color:var(--text-muted);font-weight:700;font-family:'Tajawal';">الترتيب الزمني</th>
+                <th style="padding:12px 16px;text-align:right;font-size:0.8rem;color:var(--text-muted);font-weight:700;font-family:'Tajawal';">الاسم</th>
+                <th style="padding:12px 16px;text-align:right;font-size:0.8rem;color:var(--text-muted);font-weight:700;font-family:'Tajawal';">الرقم الوظيفي</th>
+                <th style="padding:12px 16px;text-align:right;font-size:0.8rem;color:var(--text-muted);font-weight:700;font-family:'Tajawal';">أولويته للمقرر</th>
+                <th style="padding:12px 16px;text-align:right;font-size:0.8rem;color:var(--text-muted);font-weight:700;font-family:'Tajawal';">تاريخ التسجيل</th>
+              </tr>
+            </thead>
+            <tbody id="subject-detail-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div class="section-title">جميع الاستجابات</div>
     <div style="margin-bottom:16px;">
       <input type="text" id="admin-search" placeholder="🔍  ابحث باسم المدرب أو الرقم الوظيفي..." oninput="setAdminSearch(this.value)"
@@ -784,6 +812,42 @@ function renderTable(){
         <td>${FIELDS.find(f=>f.id===e.field)?.icon||''} ${e.fieldName}</td>
         <td><div class="subjects-chain">${e.subjects.map((s,idx)=>`<span class="sub-chip ${idx===0?'sub-chip-1':idx===1?'sub-chip-2':'sub-chip-n'}">${idx===0?'★ ':''}${idx+1}. ${s}</span>`).join('')}</div></td>
         <td style="color:var(--text-muted);white-space:nowrap;">${new Date(e.timestamp).toLocaleDateString('ar-SA',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      </tr>`).join('');
+}
+
+function showSubjectDetail(subj) {
+  const all = window._adminAll || [];
+  // كل المدربين الذين اختاروا هذا المقرر، مرتبين بوقت التسجيل (الأقدم أولاً)
+  const trainers = all
+    .filter(e => e.subjects.includes(subj))
+    .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp))
+    .map((e,i) => ({ ...e, rank: e.subjects.indexOf(subj)+1, order: i+1 }));
+
+  const detail = document.getElementById('subject-detail');
+  document.getElementById('subject-detail-title').textContent = '📘 ' + subj + ' — ' + trainers.length + ' مدرب';
+  detail.style.display = 'block';
+  detail.scrollIntoView({ behavior:'smooth', block:'start' });
+
+  // highlight selected button
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  const rankColor = r => r===1?'var(--warning)':r===2?'var(--accent2)':r===3?'var(--success)':'var(--text-muted)';
+
+  document.getElementById('subject-detail-tbody').innerHTML = trainers.length === 0
+    ? `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted);">لا أحد اختار هذا المقرر بعد</td></tr>`
+    : trainers.map(e => `
+      <tr style="${e.order===1?'background:rgba(0,201,167,0.05);':''}">
+        <td style="padding:14px 16px;border-top:1px solid var(--border);">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;font-family:'Tajawal';font-weight:900;font-size:0.85rem;background:${e.order===1?'rgba(0,201,167,0.2)':'rgba(107,127,163,0.1)'};color:${e.order===1?'var(--accent)':'var(--text-muted)'};">${e.order}</span>
+          ${e.order===1?'<span style="margin-right:8px;font-size:0.75rem;color:var(--accent);font-weight:700;">← أول مسجّل</span>':''}
+        </td>
+        <td style="padding:14px 16px;border-top:1px solid var(--border);font-weight:700;">${e.name}</td>
+        <td style="padding:14px 16px;border-top:1px solid var(--border);font-family:monospace;font-size:0.85rem;color:var(--accent2);">${e.id}</td>
+        <td style="padding:14px 16px;border-top:1px solid var(--border);">
+          <span style="padding:4px 10px;border-radius:6px;font-weight:800;font-size:0.82rem;background:rgba(0,0,0,0.2);color:${rankColor(e.rank)};">الأولوية #${e.rank}</span>
+        </td>
+        <td style="padding:14px 16px;border-top:1px solid var(--border);color:var(--text-muted);white-space:nowrap;">${new Date(e.timestamp).toLocaleDateString('ar-SA',{day:'2-digit',month:'short',year:'numeric'})}</td>
       </tr>`).join('');
 }
 
