@@ -696,6 +696,7 @@ async function renderAdmin(){
   all.forEach(e=>{e.subjects.forEach((s,i)=>{if(!subjectStats[s])subjectStats[s]={ranks:{}};subjectStats[s].ranks[i+1]=(subjectStats[s].ranks[i+1]||0)+1;subjectStats[s].total=(subjectStats[s].total||0)+1;})});
   const topSubject=Object.entries(subjectStats).sort((a,b)=>(b[1].ranks[1]||0)-(a[1].ranks[1]||0))[0];
   const allSubjects=[...new Set(all.flatMap(e=>e.subjects))].sort();
+  const allSubjectsComplete=[...new Set(Object.values(SUBJECTS_BY_FIELD).flat())].sort((a,b)=>a.localeCompare(b,'ar'));
 
   // أول من سجّل كل مقرر (بغض النظر عن الترتيب) — من سجّل أولاً يأخذه
   const firstRegisteredMap = {};
@@ -727,7 +728,7 @@ async function renderAdmin(){
         style="width:100%;max-width:420px;padding:14px 16px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Tajawal',sans-serif;font-size:1rem;outline:none;direction:rtl;cursor:pointer;"
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
         <option value="">-- اختر مقرراً --</option>
-        ${allSubjects.map(s=>`<option value="${s}">${s}</option>`).join('')}
+        ${allSubjectsComplete.map(s=>`<option value="${s}">${s}</option>`).join('')}
       </select>
 
       <div id="subject-detail" style="display:none;">
@@ -824,7 +825,7 @@ function showSubjectDetail(subj) {
   const rankColor = r => r===1?'var(--warning)':r===2?'var(--accent2)':r===3?'var(--success)':'var(--text-muted)';
 
   document.getElementById('subject-detail-tbody').innerHTML = trainers.length === 0
-    ? `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted);">لا أحد اختار هذا المقرر بعد</td></tr>`
+    ? `<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted);">لم يختر أحد هذا المقرر بعد</td></tr>`
     : trainers.map(e => `
       <tr style="${e.order===1?'background:rgba(0,201,167,0.04);':''}">
         <td style="padding:14px 16px;border-top:1px solid var(--border);font-family:'Tajawal';font-weight:800;color:${e.order===1?'var(--accent)':'var(--text-muted)'};">${e.order}</td>
